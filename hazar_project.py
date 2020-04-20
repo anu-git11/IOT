@@ -243,5 +243,87 @@ av.plot(figsize=(20,20))
 """We notice:  There is no significant differance in the rating between old movies or new ones. """
 
 # In[]
+# In[]
+# Spliting the data to test and training data
+#---------------------------------------------------------------------------------------------------------------------------------------
+msk = np.random.rand(len(ratings)) < 0.8
 
+training= ratings[msk]
+#convert the dataframe to spark
+spark.conf.set("spark.sql.execution.arrow.enabled", "true")
+spark.conf.set('ARROW_PRE_0_15_IPC_FORMAT', 1)
+training_sp = spark.createDataFrame(training) # takes some time 
+
+
+test = ratings[~msk]
+test_sp = spark.createDataFrame(test)
+
+training_sp.show()
+"""
++-----------+------+----------+--------+
+|Customer_id|Rating| timestamp|movie_id|
++-----------+------+----------+--------+
+|     822109|   5.0|2005-05-13|       1|
+|     885013|   4.0|2005-10-19|       1|
+|      30878|   4.0|2005-12-26|       1|
+|     823519|   3.0|2004-05-03|       1|
+|     893988|   3.0|2005-11-17|       1|
+|     124105|   4.0|2004-08-05|       1|
+|    1248029|   3.0|2004-04-22|       1|
+|    2238063|   3.0|2005-05-11|       1|
+|    2207774|   5.0|2005-06-06|       1|
+|    2590061|   3.0|2004-08-12|       1|
+|       2442|   3.0|2004-04-14|       1|
+|    1209119|   4.0|2004-03-23|       1|
+|     804919|   4.0|2004-06-10|       1|
+|    1086807|   3.0|2004-12-28|       1|
+|    1711859|   4.0|2005-05-08|       1|
+|     372233|   5.0|2005-11-23|       1|
+|    1080361|   3.0|2005-03-28|       1|
+|    1245640|   3.0|2005-12-19|       1|
+|    2165002|   4.0|2004-04-06|       1|
+|    1181550|   3.0|2004-02-01|       1|
++-----------+------+----------+--------+
+only showing top 20 rows
+"""
+test_sp.show()
+
+"""
++-----------+------+----------+--------+
+|Customer_id|Rating| timestamp|movie_id|
++-----------+------+----------+--------+
+|    1488844|   3.0|2005-09-06|       1|
+|    1842128|   4.0|2004-05-09|       1|
+|    1503895|   4.0|2005-05-19|       1|
+|     543865|   4.0|2004-05-28|       1|
+|     558634|   4.0|2004-12-14|       1|
+|    1227322|   4.0|2004-02-06|       1|
+|     427928|   4.0|2004-02-26|       1|
+|    1133214|   4.0|2004-03-07|       1|
+|    1209954|   5.0|2005-05-09|       1|
+|    2421815|   2.0|2004-02-26|       1|
+|    1905581|   5.0|2005-08-16|       1|
+|    2508819|   3.0|2004-05-18|       1|
+|    1578279|   1.0|2005-05-19|       1|
+|    1159695|   4.0|2005-02-15|       1|
+|     880166|   5.0|2005-07-12|       1|
+|     573537|   4.0|2005-02-03|       1|
+|    2244518|   5.0|2004-09-15|       1|
+|     584542|   5.0|2005-02-01|       1|
+|      38052|   3.0|2004-06-03|       1|
+|    1719610|   2.0|2005-08-19|       1|
++-----------+------+----------+--------+
+only showing top 20 rows
+"""
+
+# In[]
+#Building the model 
+#-------------------------------------------------------------------------------------------------------------------------
+from pyspark.ml.evaluation import RegressionEvaluator
+from pyspark.ml.recommendation import ALS
+
+# Build the recommendation model using ALS on the training data
+# Note we set cold start strategy to 'drop' to ensure we don't get NaN evaluation metrics
+als = ALS(userCol="Customer_id", itemCol="movie_id", ratingCol="Rating")
+model = als.fit(training_sp)
 
